@@ -5,6 +5,7 @@ import shlex
 import shutil
 import logging
 import sys
+import time
 
 from . import config
 
@@ -57,6 +58,61 @@ def _record_failure(key: str, *related_files: str) -> bool:
 def _clear_failure(key: str):
     """Clear failure count on success."""
     _failure_counts.pop(key, None)
+
+
+def recover_orphan_part_files():
+    """Detect and recover orphan .flv.part files left by interrupted recordings.
+
+    When the recording service is killed (e.g. service restart), in-progress
+    .flv.part / .xml.part files are never renamed to their final names.
+    The pipeline glob (*.flv) cannot match them, so they sit forever.
+
+    This function finds .flv.part files whose mtime exceeds the configured
+    threshold and renames them (removing the .part suffix) so the pipeline
+    can process them normally.
+    """
+    age_threshold = config.ORPHAN_PART_FILE_AGE_MINUTES * 60
+    now = time.time()
+    recovered = 0
+
+    try:
+        with os.scandir(config.PROCESSING_FOLDER) as entries:
+            for entry in entries:
+                if not entry.name.endswith(".flv.part"):
+                    continue
+                try:
+                    mtime = entry.stat().st_mtime
+                except OSError:
+                    continue
+                if (now - mtime) < age_threshold:
+                    continue
+
+                # This .flv.part has not been written to in a long time — recover it
+                flv_final = entry.path[: -len(".part")]
+                try:
+                    os.rename(entry.path, flv_final)
+                    logger.info(f"已恢复孤儿文件: {entry.name} -> {os.path.basename(flv_final)}")
+                    recovered += 1
+                except OSError as e:
+                    logger.error(f"恢复孤儿文件失败 {entry.name}: {e}")
+                    continue
+
+                # Also recover the matching .xml.part if present
+                xml_part = entry.path[: -len(".flv.part")] + ".xml.part"
+                xml_final = xml_part[: -len(".part")]
+                try:
+                    os.rename(xml_part, xml_final)
+                    logger.info(f"已恢复孤儿弹幕文件: {os.path.basename(xml_part)} -> {os.path.basename(xml_final)}")
+                except FileNotFoundError:
+                    pass
+                except OSError as e:
+                    logger.error(f"恢复孤儿弹幕文件失败 {os.path.basename(xml_part)}: {e}")
+    except OSError as e:
+        logger.error(f"扫描孤儿 .part 文件时出错: {e}")
+
+    if recovered:
+        logger.info(f"共恢复 {recovered} 个孤儿 .part 文件")
+    return recovered
 
 
 def _build_ffmpeg_env():
