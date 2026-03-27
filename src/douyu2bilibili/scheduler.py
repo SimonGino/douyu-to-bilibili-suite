@@ -7,7 +7,7 @@ from sqlalchemy import desc, select
 
 from . import config
 from .danmaku import cleanup_small_files, convert_danmaku
-from .encoder import encode_video
+from .encoder import encode_video, recover_orphan_part_files
 from .uploader import load_yaml_config, upload_to_bilibili, update_video_bvids
 from .models import StreamSession, local_now
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,6 +52,9 @@ async def scheduled_video_processing():
         pipeline_logger.info("定时任务：检测到 SKIP_VIDEO_ENCODING=True 配置，将跳过弹幕压制步骤，直接处理 FLV 文件")
 
     try:
+        pipeline_logger.info("定时任务：检查孤儿 .part 文件...")
+        await loop.run_in_executor(None, recover_orphan_part_files)
+
         pipeline_logger.info("定时任务：执行文件清理...")
         await loop.run_in_executor(None, cleanup_small_files)
 
@@ -269,6 +272,7 @@ def run_processing_sync():
     """Synchronous video processing for background thread execution."""
     pipeline_logger.info("后台任务：开始执行视频处理（清理、转换、压制）...")
     try:
+        recover_orphan_part_files()
         cleanup_small_files()
 
         is_skip_encoding = config.SKIP_VIDEO_ENCODING

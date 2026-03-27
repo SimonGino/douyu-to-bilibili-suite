@@ -65,6 +65,10 @@ STREAM_STATUS_CHECK_INTERVAL = 10
 # 检测主播状态时，开播时间向前调整的时间量 (分钟)
 STREAM_START_TIME_ADJUSTMENT = 10
 
+# --- 孤儿 .part 文件恢复 ---
+# 当 .flv.part 文件的最后修改时间超过此阈值 (分钟)，视为孤儿文件并自动去掉 .part 后缀
+ORPHAN_PART_FILE_AGE_MINUTES = 120
+
 # --- 录制配置 ---
 # 是否启用内建录制服务 (recording_service.py)
 RECORDING_ENABLED = True
