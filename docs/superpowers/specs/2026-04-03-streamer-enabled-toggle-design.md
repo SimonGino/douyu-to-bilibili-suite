@@ -39,8 +39,9 @@ streamers:
 **Single change point:** `uploader.py` → `load_yaml_config()`
 
 In the streamer iteration loop, after extracting `streamer_data`, check `enabled`:
-- If `enabled` is explicitly `false`, log a message and `continue` (skip this streamer)
-- Any other value (including omitted/`true`) → proceed as normal
+- If `enabled is False` (strict identity check), log at INFO level and `continue` (skip this streamer)
+- Any other value (including omitted/`true`/`null`) → proceed as normal
+- After the loop, if `streamers_list` is empty (all disabled or none configured), log a WARNING
 
 No other modules need changes. All downstream consumers (`app.py` startup, `recording_service.py`, `scheduler.py`) read from `config.STREAMERS`, which is populated by `load_yaml_config()`. Skipping a streamer there removes it from the entire pipeline.
 
@@ -73,4 +74,6 @@ Add to `config.yaml`:
 
 ## Testing
 
-- Unit test: verify `load_yaml_config()` skips streamers with `enabled: false` and includes those with `enabled: true` or omitted
+- Unit test: `load_yaml_config()` skips streamers with `enabled: false`, includes `enabled: true` and omitted
+- Unit test: all streamers disabled → function returns `True` with empty `STREAMERS`, logs warning
+- Unit test: non-boolean `enabled` values (`0`, `null`, `"false"`) are NOT filtered (only `false` is)
