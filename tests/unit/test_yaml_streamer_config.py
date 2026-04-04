@@ -1,15 +1,26 @@
 """Tests for config.yaml loading and STREAMERS derivation."""
 import logging
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
-from pathlib import Path
 
 from douyu2bilibili import config as config_module
+from douyu2bilibili import uploader
 
 
-def test_load_yaml_config_populates_streamers(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
+@pytest.fixture
+def write_yaml_config(tmp_path: Path, monkeypatch):
+    """Write YAML content to a temp file and patch the config path."""
+    def _write(content: str) -> Path:
+        yaml_file = tmp_path / "config.yaml"
+        yaml_file.write_text(content, encoding="utf-8")
+        monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+        return yaml_file
+    return _write
 
+
+def test_load_yaml_config_populates_streamers(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -34,9 +45,7 @@ streamers:
 upload:
   max_concurrent: 2
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
@@ -55,9 +64,7 @@ upload:
     assert uploader.upload_global_config.get("max_concurrent") == 2
 
 
-def test_load_yaml_config_fails_on_missing_room_id(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_load_yaml_config_fails_on_missing_room_id(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -68,17 +75,13 @@ streamers:
       desc: "d"
       source: "s"
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
     assert result is False
 
 
-def test_load_yaml_config_fails_on_missing_upload_fields(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_load_yaml_config_fails_on_missing_upload_fields(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -87,32 +90,24 @@ streamers:
       title: "test{time}"
       # missing tid, tag, desc, source
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
     assert result is False
 
 
-def test_load_yaml_config_fails_on_missing_streamers(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_load_yaml_config_fails_on_missing_streamers(write_yaml_config):
     yaml_content = """\
 upload:
   max_concurrent: 1
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
     assert result is False
 
 
-def test_single_streamer_backward_compatible(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_single_streamer_backward_compatible(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -126,9 +121,7 @@ streamers:
       cover: ""
       dynamic: ""
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
@@ -137,9 +130,7 @@ streamers:
     assert config_module.STREAMERS[0] == {"name": "洞主", "room_id": "138243"}
 
 
-def test_danmaku_tag_placeholder_in_title(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_danmaku_tag_placeholder_in_title(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -154,9 +145,7 @@ streamers:
 upload:
   max_concurrent: 1
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
@@ -164,9 +153,7 @@ upload:
     assert "{danmaku_tag}" in uploader.streamer_configs["洞主"]["title"]
 
 
-def test_enabled_false_skips_streamer(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_enabled_false_skips_streamer(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -188,9 +175,7 @@ streamers:
       desc: "d"
       source: "s"
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
@@ -200,9 +185,7 @@ streamers:
     assert "银剑君" not in uploader.streamer_configs
 
 
-def test_enabled_omitted_defaults_to_included(tmp_path: Path, monkeypatch):
-    from douyu2bilibili import uploader
-
+def test_enabled_omitted_defaults_to_included(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -214,9 +197,7 @@ streamers:
       desc: "d"
       source: "s"
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
@@ -225,10 +206,7 @@ streamers:
     assert config_module.STREAMERS[0]["name"] == "洞主"
 
 
-def test_all_streamers_disabled_returns_true_with_warning(tmp_path: Path, monkeypatch):
-    from unittest.mock import patch
-    from douyu2bilibili import uploader
-
+def test_all_streamers_disabled_returns_true_with_warning(write_yaml_config):
     yaml_content = """\
 streamers:
   洞主:
@@ -241,9 +219,7 @@ streamers:
       desc: "d"
       source: "s"
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    yaml_file = write_yaml_config(yaml_content)
 
     with patch.object(uploader.logger, "warning") as mock_warn:
         result = uploader.load_yaml_config()
@@ -258,9 +234,7 @@ streamers:
     [0, "null", '"false"', '""'],
     ids=["int_zero", "yaml_null", "string_false", "empty_string"],
 )
-def test_non_boolean_false_enabled_not_filtered(tmp_path: Path, monkeypatch, enabled_value):
-    from douyu2bilibili import uploader
-
+def test_non_boolean_false_enabled_not_filtered(write_yaml_config, enabled_value):
     yaml_content = f"""\
 streamers:
   洞主:
@@ -273,9 +247,7 @@ streamers:
       desc: "d"
       source: "s"
 """
-    yaml_file = tmp_path / "config.yaml"
-    yaml_file.write_text(yaml_content, encoding="utf-8")
-    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+    write_yaml_config(yaml_content)
 
     result = uploader.load_yaml_config()
 
