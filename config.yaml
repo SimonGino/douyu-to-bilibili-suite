@@ -1,6 +1,7 @@
 streamers:
   洞主:
     room_id: "138243"
+    enabled: false
     upload:
       source: "https://www.douyu.com/138243"
       title: "洞主直播录像{time}{danmaku_tag}"
@@ -16,6 +17,7 @@ streamers:
 
   银剑君:
     room_id: "251783"
+    enabled: false
     upload:
       source: "https://www.douyu.com/251783"
       title: "银剑君直播录像{time}{danmaku_tag}"
