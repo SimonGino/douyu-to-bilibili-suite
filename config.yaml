@@ -28,5 +28,19 @@ streamers:
       cover: ''
       dynamic: ''
 
+  二抛:
+    room_id: "4452132"
+    upload:
+      source: "https://www.douyu.com/4452132"
+      title: "二抛直播录像{time}{danmaku_tag}"
+      desc: |
+            二抛的精彩直播录像！
+            主播直播间地址：https://www.douyu.com/4452132
+            欢迎关注！
+      tid: 171
+      tag: "二抛,直播录像,游戏实况"
+      cover: ''
+      dynamic: ''
+
 upload:
   max_concurrent: 1
