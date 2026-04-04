@@ -485,6 +485,11 @@ def load_yaml_config():
                     valid = False
                     continue
 
+                # Skip disabled streamers (only strict `False` triggers skip)
+                if streamer_data.get('enabled') is False:
+                    logger.info(f"主播 '{streamer_name}' 已禁用 (enabled: false)，跳过")
+                    continue
+
                 room_id = streamer_data.get('room_id')
                 if not room_id:
                     logger.error(f"主播 '{streamer_name}' 缺少 'room_id'。")
@@ -521,6 +526,9 @@ def load_yaml_config():
             if not valid:
                 _reset_yaml_globals()
                 return False
+
+            if not streamers_list:
+                logger.warning(f"配置文件 {config.YAML_CONFIG_PATH} 中没有启用的主播")
 
             streamer_configs.clear()
             streamer_configs.update(parsed_configs)

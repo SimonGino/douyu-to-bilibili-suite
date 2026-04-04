@@ -1,6 +1,7 @@
 streamers:
   洞主:
     room_id: "138243"
+    enabled: false
     upload:
       source: "https://www.douyu.com/138243"
       title: "洞主直播录像{time}{danmaku_tag}"
@@ -16,6 +17,7 @@ streamers:
 
   银剑君:
     room_id: "251783"
+    enabled: false
     upload:
       source: "https://www.douyu.com/251783"
       title: "银剑君直播录像{time}{danmaku_tag}"
@@ -25,6 +27,20 @@ streamers:
             欢迎关注！
       tid: 171
       tag: "银剑君,直播录像,游戏实况"
+      cover: ''
+      dynamic: ''
+
+  二抛:
+    room_id: "4452132"
+    upload:
+      source: "https://www.douyu.com/4452132"
+      title: "二抛直播录像{time}{danmaku_tag}"
+      desc: |
+            二抛的精彩直播录像！
+            主播直播间地址：https://www.douyu.com/4452132
+            欢迎关注！
+      tid: 171
+      tag: "二抛,直播录像,游戏实况"
       cover: ''
       dynamic: ''
 
