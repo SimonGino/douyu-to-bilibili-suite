@@ -160,3 +160,122 @@ upload:
 
     assert result is True
     assert "{danmaku_tag}" in uploader.streamer_configs["洞主"]["title"]
+
+
+def test_enabled_false_skips_streamer(tmp_path: Path, monkeypatch):
+    from douyu2bilibili import uploader
+
+    yaml_content = """\
+streamers:
+  洞主:
+    room_id: "138243"
+    enabled: true
+    upload:
+      title: "test{time}"
+      tid: 171
+      tag: "t"
+      desc: "d"
+      source: "s"
+  银剑君:
+    room_id: "251783"
+    enabled: false
+    upload:
+      title: "test{time}"
+      tid: 171
+      tag: "t"
+      desc: "d"
+      source: "s"
+"""
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content, encoding="utf-8")
+    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+
+    result = uploader.load_yaml_config()
+
+    assert result is True
+    assert len(config_module.STREAMERS) == 1
+    assert config_module.STREAMERS[0]["name"] == "洞主"
+    assert "银剑君" not in uploader.streamer_configs
+
+
+def test_enabled_omitted_defaults_to_included(tmp_path: Path, monkeypatch):
+    from douyu2bilibili import uploader
+
+    yaml_content = """\
+streamers:
+  洞主:
+    room_id: "138243"
+    upload:
+      title: "test{time}"
+      tid: 171
+      tag: "t"
+      desc: "d"
+      source: "s"
+"""
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content, encoding="utf-8")
+    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+
+    result = uploader.load_yaml_config()
+
+    assert result is True
+    assert len(config_module.STREAMERS) == 1
+    assert config_module.STREAMERS[0]["name"] == "洞主"
+
+
+def test_all_streamers_disabled_returns_true_with_warning(tmp_path: Path, monkeypatch, caplog):
+    import logging
+    from douyu2bilibili import uploader
+
+    yaml_content = """\
+streamers:
+  洞主:
+    room_id: "138243"
+    enabled: false
+    upload:
+      title: "test{time}"
+      tid: 171
+      tag: "t"
+      desc: "d"
+      source: "s"
+"""
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content, encoding="utf-8")
+    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+
+    with caplog.at_level(logging.WARNING):
+        result = uploader.load_yaml_config()
+
+    assert result is True
+    assert len(config_module.STREAMERS) == 0
+    assert any("没有启用的主播" in r.message for r in caplog.records)
+
+
+@pytest.mark.parametrize(
+    "enabled_value",
+    [0, "null", '"false"', '""'],
+    ids=["int_zero", "yaml_null", "string_false", "empty_string"],
+)
+def test_non_boolean_false_enabled_not_filtered(tmp_path: Path, monkeypatch, enabled_value):
+    from douyu2bilibili import uploader
+
+    yaml_content = f"""\
+streamers:
+  洞主:
+    room_id: "138243"
+    enabled: {enabled_value}
+    upload:
+      title: "test{{time}}"
+      tid: 171
+      tag: "t"
+      desc: "d"
+      source: "s"
+"""
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content, encoding="utf-8")
+    monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
+
+    result = uploader.load_yaml_config()
+
+    assert result is True
+    assert len(config_module.STREAMERS) == 1
