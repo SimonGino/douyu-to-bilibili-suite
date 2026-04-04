@@ -225,7 +225,8 @@ streamers:
     assert config_module.STREAMERS[0]["name"] == "洞主"
 
 
-def test_all_streamers_disabled_returns_true_with_warning(tmp_path: Path, monkeypatch, caplog):
+def test_all_streamers_disabled_returns_true_with_warning(tmp_path: Path, monkeypatch):
+    from unittest.mock import patch
     from douyu2bilibili import uploader
 
     yaml_content = """\
@@ -244,12 +245,12 @@ streamers:
     yaml_file.write_text(yaml_content, encoding="utf-8")
     monkeypatch.setattr(config_module, "YAML_CONFIG_PATH", str(yaml_file))
 
-    with caplog.at_level(logging.WARNING):
+    with patch.object(uploader.logger, "warning") as mock_warn:
         result = uploader.load_yaml_config()
 
     assert result is True
     assert len(config_module.STREAMERS) == 0
-    assert any("没有启用的主播" in r.message for r in caplog.records)
+    mock_warn.assert_any_call(f"配置文件 {str(yaml_file)} 中没有启用的主播")
 
 
 @pytest.mark.parametrize(
