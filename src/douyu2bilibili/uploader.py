@@ -528,7 +528,7 @@ def load_yaml_config():
                 return False
 
             if not streamers_list:
-                logger.warning("配置文件中没有启用的主播")
+                logger.warning(f"配置文件 {config.YAML_CONFIG_PATH} 中没有启用的主播")
 
             streamer_configs.clear()
             streamer_configs.update(parsed_configs)
