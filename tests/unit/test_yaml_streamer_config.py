@@ -1,4 +1,6 @@
 """Tests for config.yaml loading and STREAMERS derivation."""
+import logging
+
 import pytest
 from pathlib import Path
 
@@ -224,7 +226,6 @@ streamers:
 
 
 def test_all_streamers_disabled_returns_true_with_warning(tmp_path: Path, monkeypatch, caplog):
-    import logging
     from douyu2bilibili import uploader
 
     yaml_content = """\
